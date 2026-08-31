@@ -6,12 +6,11 @@ export interface SyncOperation {
   data: Record<string, any>;
 }
 
-// ── MOCK MODE ──────────────────────────────────────────────────────────────
-export { mockSyncApi as syncApi } from './localMock';
-// ── REAL IMPLEMENTATION (uncomment when backend is ready) ──────────────────
-// export const syncApi = {
-//   bulkSync: async (operations: SyncOperation[]) => {
-//     const res = await apiClient.post('/sync/bulk', { operations });
-//     return res.data;
-//   },
-// };
+export const syncApi = {
+  bulkSync: async (
+    operations: SyncOperation[]
+  ): Promise<{ data: Array<{ id: string; success: boolean }>; processed: number }> => {
+    const res = await apiClient.post('/sync/bulk', { operations });
+    return res.data;
+  },
+};

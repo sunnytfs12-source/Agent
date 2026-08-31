@@ -15,6 +15,21 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateUser: (updatedFields: Partial<User>) => void;
   refreshUserProfile: () => Promise<void>;
+  toggleTheme: () => void;
+}
+
+// ── Apply dark/light class to <html> ─────────────────────────────
+export function applyTheme(theme?: string | null) {
+  const root = document.documentElement;
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const resolved = theme === 'system' || !theme
+    ? (prefersDark ? 'dark' : 'light')
+    : theme;
+  if (resolved === 'dark') {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,7 +39,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('mscit_user');
     if (!saved) return null;
     try {
-      return JSON.parse(saved);
+      const u = JSON.parse(saved) as User;
+      // Apply saved theme immediately on page load — runs before first paint
+      applyTheme(u.theme);
+      return u;
     } catch {
       return null;
     }
@@ -35,9 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Initialize and verify session on boot
   const checkAuth = useCallback(async () => {
-    const token = localStorage.getItem('mscit_access_token');
+    const token   = localStorage.getItem('mscit_access_token');
     const refresh = localStorage.getItem('mscit_refresh_token');
 
     if (!token && !refresh) {
@@ -51,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await authApi.getMe();
       setUser(res.data);
       localStorage.setItem('mscit_user', JSON.stringify(res.data));
+      applyTheme(res.data.theme);
     } catch (err: any) {
       console.warn('Initial session check failed:', err?.message);
     } finally {
@@ -61,13 +79,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     checkAuth();
 
-    // Listen to window logout event from axios client
     const handleLogoutEvent = () => {
       setUser(null);
       setAccessToken(null);
       localStorage.removeItem('mscit_access_token');
       localStorage.removeItem('mscit_refresh_token');
       localStorage.removeItem('mscit_user');
+      // Revert to system preference on forced logout
+      applyTheme('system');
       toast.error('Session expired. Please log in again.');
     };
 
@@ -81,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('mscit_user', JSON.stringify(data.user));
     localStorage.setItem('mscit_access_token', data.accessToken);
     localStorage.setItem('mscit_refresh_token', data.refreshToken);
+    applyTheme(data.user.theme);
   };
 
   const login = async (email: string, password: string) => {
@@ -111,23 +131,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const refreshToken = localStorage.getItem('mscit_refresh_token') || undefined;
     try {
       await authApi.logout(refreshToken);
-    } catch (err) {
-      // Ignore error on logout
+    } catch {
+      // ignore
     } finally {
       setUser(null);
       setAccessToken(null);
       localStorage.removeItem('mscit_access_token');
       localStorage.removeItem('mscit_refresh_token');
       localStorage.removeItem('mscit_user');
+      applyTheme('system');
       toast.success('Logged out successfully');
     }
   };
 
+  // updateUser now applies theme immediately — no refresh needed
   const updateUser = (updatedFields: Partial<User>) => {
     setUser((prev) => {
       if (!prev) return null;
       const updated = { ...prev, ...updatedFields };
       localStorage.setItem('mscit_user', JSON.stringify(updated));
+      if (updatedFields.theme !== undefined) {
+        applyTheme(updated.theme);
+      }
+      return updated;
+    });
+  };
+
+  // Quick toggle between dark and light without going through ProfilePage
+  const toggleTheme = () => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const next = prev.theme === 'dark' ? 'light' : 'dark';
+      const updated = { ...prev, theme: next };
+      localStorage.setItem('mscit_user', JSON.stringify(updated));
+      applyTheme(next);
+      // Persist to server in the background (fire-and-forget)
+      authApi.updateProfile({ theme: next }).catch(() => {});
       return updated;
     });
   };
@@ -137,8 +176,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await authApi.getMe();
       setUser(res.data);
       localStorage.setItem('mscit_user', JSON.stringify(res.data));
+      applyTheme(res.data.theme);
     } catch {
-      // Ignored
+      // ignored
     }
   };
 
@@ -147,15 +187,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       accessToken,
       isAuthenticated: !!user && !!accessToken,
-      isAdmin: user?.role === 'admin' || user?.role === 'superadmin',
-      isSuperAdmin: user?.role === 'superadmin',
+      isAdmin:        user?.role === 'admin' || user?.role === 'superadmin',
+      isSuperAdmin:   user?.role === 'superadmin',
       isLoading,
       login,
       register,
       logout,
       updateUser,
       refreshUserProfile,
+      toggleTheme,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, accessToken, isLoading]
   );
 
@@ -164,8 +206,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

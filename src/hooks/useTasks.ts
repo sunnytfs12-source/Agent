@@ -18,6 +18,7 @@ export const useTasks = (filters: TaskFilters = {}) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Task created!');
     },
     onError: (err: any) => {
@@ -32,6 +33,7 @@ export const useTasks = (filters: TaskFilters = {}) => {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task', res.data.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Task updated');
     },
     onError: (err: any) => {
@@ -45,6 +47,7 @@ export const useTasks = (filters: TaskFilters = {}) => {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task', res.data.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       if (res.data.status === 'completed') {
         toast.success('Task completed! 🎉');
       } else {
@@ -62,6 +65,7 @@ export const useTasks = (filters: TaskFilters = {}) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Task deleted');
     },
     onError: (err: any) => {

@@ -6,7 +6,6 @@ import { CategoryModal } from '../categories/CategoryModal';
 import { TagModal } from '../categories/TagModal';
 
 interface AppLayoutProps {
-  onOpenAiQuickAdd?: () => void;
   selectedCategory?: string;
   onSelectCategory?: (id?: string) => void;
   selectedTag?: string;
@@ -14,7 +13,6 @@ interface AppLayoutProps {
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
-  onOpenAiQuickAdd,
   selectedCategory,
   onSelectCategory,
   selectedTag,
@@ -26,10 +24,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <Navbar
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        onOpenAiQuickAdd={onOpenAiQuickAdd}
-      />
+      <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -48,15 +43,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         </main>
       </div>
 
-      {/* Category Modal */}
       {categoryModalOpen && (
-        <CategoryModal
-          isOpen={categoryModalOpen}
-          onClose={() => setCategoryModalOpen(false)}
-        />
+        <CategoryModal isOpen={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} />
       )}
-
-      {/* Tag Modal */}
       {tagModalOpen && (
         <TagModal isOpen={tagModalOpen} onClose={() => setTagModalOpen(false)} />
       )}

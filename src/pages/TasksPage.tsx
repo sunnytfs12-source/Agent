@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useTasks } from '../hooks/useTasks';
 import { Task, TaskFilters, TaskStatus } from '../types';
-import { AiSmartInput } from '../components/ai/AiSmartInput';
 import { AiSuggestionsBanner } from '../components/ai/AiSuggestionsBanner';
 import { TaskFilterBar } from '../components/tasks/TaskFilterBar';
 import { TaskListView } from '../components/tasks/TaskListView';
@@ -78,9 +77,6 @@ export const TasksPage: React.FC<TasksPageProps> = ({
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      {/* Top AI Smart Input Bar */}
-      <AiSmartInput onCreateTask={createTask} />
-
       {/* AI Suggestions & Alert Banner */}
       <AiSuggestionsBanner onApplyPrioritize={reorderTasks} />
 
